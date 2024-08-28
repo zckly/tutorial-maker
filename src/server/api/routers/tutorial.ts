@@ -1,25 +1,29 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, publicProcedure } from "../trpc";
 import { Octokit } from "@octokit/rest";
 import type { components } from "@octokit/openapi-types";
-import OpenAI from "openai";
-import { env } from "~/env.js";
+import { env } from "../../../env.js";
 import { TRPCError } from "@trpc/server";
+import axios from "axios";
 
 if (!env.GITHUB_ACCESS_TOKEN) {
   throw new Error("GITHUB_ACCESS_TOKEN is not set in the environment variables");
 }
 
-if (!env.OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY is not set in the environment variables");
+if (!env.CLAUDE_API_KEY) {
+  throw new Error("CLAUDE_API_KEY is not set in the environment variables");
 }
 
 const octokit = new Octokit({
   auth: env.GITHUB_ACCESS_TOKEN,
 });
 
-const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY,
+const claudeApi = axios.create({
+  baseURL: "https://api.anthropic.com/v1",
+  headers: {
+    "Content-Type": "application/json",
+    "X-API-Key": env.CLAUDE_API_KEY,
+  },
 });
 
 export const tutorialRouter = createTRPCRouter({
@@ -76,7 +80,7 @@ export const tutorialRouter = createTRPCRouter({
           .map((file) => `${file.type === "dir" ? "📁" : "📄"} ${file.name}`)
           .join("\n");
 
-        // Generate tutorial using OpenAI GPT-3.5
+        // Generate tutorial using Claude API
         const prompt = `
           Generate a tutorial for the following GitHub repository:
 
@@ -91,14 +95,14 @@ export const tutorialRouter = createTRPCRouter({
           Please create a comprehensive tutorial that explains the purpose of the repository, its main features, and how to use it. Include code examples and explanations where appropriate.
         `;
 
-        const response = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
-          messages: [{ role: "user", content: prompt }],
-          max_tokens: 2000,
+        const response = await claudeApi.post("/completions", {
+          model: "claude-2",
+          prompt: prompt,
+          max_tokens_to_sample: 2000,
           temperature: 0.7,
         });
 
-        const tutorial = response.choices[0]?.message.content?.trim();
+        const tutorial = response.data.completion?.trim();
         if (!tutorial) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",

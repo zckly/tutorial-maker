@@ -8,7 +8,7 @@ export const env = createEnv({
    */
   server: {
     NODE_ENV: z.enum(["development", "test", "production"]),
-    OPENAI_API_KEY: z.string(),
+    CLAUDE_API_KEY: z.string(),
     GITHUB_ACCESS_TOKEN: z.string(),
   },
 
@@ -27,7 +27,7 @@ export const env = createEnv({
    */
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    CLAUDE_API_KEY: process.env.CLAUDE_API_KEY,
     GITHUB_ACCESS_TOKEN: process.env.GITHUB_ACCESS_TOKEN,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
